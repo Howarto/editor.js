@@ -2,7 +2,7 @@ import SelectionUtils from '../selection';
 
 import $ from '../dom';
 import * as _ from '../utils';
-import { InlineTool, SanitizerConfig } from '../../../types';
+import { API, InlineTool, SanitizerConfig } from '../../../types';
 import { Notifier, Toolbar, I18n } from '../../../types/api';
 
 /**
@@ -35,8 +35,7 @@ export default class LinkInlineTool implements InlineTool {
     return {
       a: {
         href: true,
-        target: '_blank',
-        rel: 'nofollow',
+        title: true,
       },
     } as SanitizerConfig;
   }
@@ -69,10 +68,14 @@ export default class LinkInlineTool implements InlineTool {
    */
   private nodes: {
     button: HTMLButtonElement;
-    input: HTMLInputElement;
+    inputs: {
+      root: HTMLElement;
+      link: HTMLInputElement;
+      title: HTMLInputElement;
+    };
   } = {
     button: null,
-    input: null,
+    inputs: null,
   };
 
   /**
@@ -133,16 +136,34 @@ export default class LinkInlineTool implements InlineTool {
    * Input for the link
    */
   public renderActions(): HTMLElement {
-    this.nodes.input = document.createElement('input') as HTMLInputElement;
-    this.nodes.input.placeholder = this.i18n.t('Add a link');
-    this.nodes.input.classList.add(this.CSS.input);
-    this.nodes.input.addEventListener('keydown', (event: KeyboardEvent) => {
+    const link = document.createElement('input');
+    link.placeholder = this.i18n.t('Add a link');
+    link.classList.add(this.CSS.input);
+    link.addEventListener('keydown', (event: KeyboardEvent) => {
       if (event.keyCode === this.ENTER_KEY) {
         this.enterPressed(event);
       }
     });
 
-    return this.nodes.input;
+    const title = document.createElement('input');
+    title.placeholder = this.i18n.t('Add a title');
+    title.classList.add(this.CSS.input);
+    title.addEventListener('keydown', (event: KeyboardEvent) => {
+      if (event.keyCode === this.ENTER_KEY) {
+        this.enterPressed(event);
+      }
+    });
+
+    const root = document.createElement('div');
+    root.append(link, title);
+
+    this.nodes.inputs = {
+      root,
+      link,
+      title,
+    };
+
+    return this.nodes.inputs.root;
   }
 
   /**
@@ -202,8 +223,10 @@ export default class LinkInlineTool implements InlineTool {
        * Fill input value with link href
        */
       const hrefAttr = anchorTag.getAttribute('href');
+      const titleAttr = anchorTag.getAttribute('title');
 
-      this.nodes.input.value = hrefAttr !== 'null' ? hrefAttr : '';
+      this.nodes.inputs.link.value = hrefAttr !== 'null' ? hrefAttr : '';
+      this.nodes.inputs.title.value = titleAttr !== 'null' ? titleAttr : '';
 
       this.selection.save();
     } else {
@@ -243,10 +266,15 @@ export default class LinkInlineTool implements InlineTool {
    * @param {boolean} needFocus - on link creation we need to focus input. On editing - nope.
    */
   private openActions(needFocus = false): void {
-    this.nodes.input.classList.add(this.CSS.inputShowed);
+    this.nodes.inputs.root.classList.add(this.CSS.inputShowed);
+
+    this.nodes.inputs.link.classList.add(this.CSS.inputShowed);
     if (needFocus) {
-      this.nodes.input.focus();
+      this.nodes.inputs.link.focus();
     }
+
+    this.nodes.inputs.title.classList.add(this.CSS.inputShowed);
+
     this.inputOpened = true;
   }
 
@@ -270,8 +298,11 @@ export default class LinkInlineTool implements InlineTool {
       currentSelection.restore();
     }
 
-    this.nodes.input.classList.remove(this.CSS.inputShowed);
-    this.nodes.input.value = '';
+    this.nodes.inputs.root.classList.remove(this.CSS.inputShowed);
+    this.nodes.inputs.link.classList.remove(this.CSS.inputShowed);
+    this.nodes.inputs.title.classList.remove(this.CSS.inputShowed);
+    this.nodes.inputs.link.value = '';
+    this.nodes.inputs.title.value = '';
     if (clearSavedSelection) {
       this.selection.clearSaved();
     }
@@ -284,9 +315,10 @@ export default class LinkInlineTool implements InlineTool {
    * @param {KeyboardEvent} event - enter keydown event
    */
   private enterPressed(event: KeyboardEvent): void {
-    let value = this.nodes.input.value || '';
+    let link = this.nodes.inputs.link.value || '';
+    const title = this.nodes.inputs.title.value || '';
 
-    if (!value.trim()) {
+    if (!link.trim()) {
       this.selection.restore();
       this.unlink();
       event.preventDefault();
@@ -295,23 +327,23 @@ export default class LinkInlineTool implements InlineTool {
       return;
     }
 
-    if (!this.validateURL(value)) {
+    if (!this.validateURL(link)) {
       this.notifier.show({
         message: 'Pasted link is not valid.',
         style: 'error',
       });
 
-      _.log('Incorrect Link pasted', 'warn', value);
+      _.log('Incorrect Link pasted', 'warn', link);
 
       return;
     }
 
-    value = this.prepareLink(value);
+    link = this.prepareLink(link);
 
     this.selection.restore();
     this.selection.removeFakeBackground();
 
-    this.insertLink(value);
+    this.insertLink(link, title);
 
     /**
      * Preventing events that will be able to happen
@@ -385,7 +417,7 @@ export default class LinkInlineTool implements InlineTool {
    *
    * @param {string} link - "href" value
    */
-  private insertLink(link: string): void {
+  private insertLink(link: string, title: string): void {
     /**
      * Edit all link, not selected part
      */
@@ -396,6 +428,11 @@ export default class LinkInlineTool implements InlineTool {
     }
 
     document.execCommand(this.commandLink, false, link);
+    /**
+     * Get the selection again due to 'execCommand' replaced
+     * the previous element.
+     */
+    this.selection.findParentTag('A').title = title;
   }
 
   /**
