@@ -2,7 +2,7 @@ import SelectionUtils from '../selection';
 
 import $ from '../dom';
 import * as _ from '../utils';
-import { API, InlineTool, SanitizerConfig } from '../../../types';
+import { InlineTool, SanitizerConfig } from '../../../types';
 import { Notifier, Toolbar, I18n } from '../../../types/api';
 
 /**
@@ -137,6 +137,7 @@ export default class LinkInlineTool implements InlineTool {
    */
   public renderActions(): HTMLElement {
     const link = document.createElement('input');
+
     link.placeholder = this.i18n.t('Add a link');
     link.classList.add(this.CSS.input);
     link.addEventListener('keydown', (event: KeyboardEvent) => {
@@ -146,6 +147,7 @@ export default class LinkInlineTool implements InlineTool {
     });
 
     const title = document.createElement('input');
+
     title.placeholder = this.i18n.t('Add a title');
     title.classList.add(this.CSS.input);
     title.addEventListener('keydown', (event: KeyboardEvent) => {
@@ -155,6 +157,7 @@ export default class LinkInlineTool implements InlineTool {
     });
 
     const root = document.createElement('div');
+
     root.append(link, title);
 
     this.nodes.inputs = {
@@ -416,6 +419,7 @@ export default class LinkInlineTool implements InlineTool {
    * Inserts <a> tag with "href"
    *
    * @param {string} link - "href" value
+   * @param {string} title - "title" title
    */
   private insertLink(link: string, title: string): void {
     /**
