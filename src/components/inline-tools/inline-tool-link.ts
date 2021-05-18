@@ -401,14 +401,16 @@ export default class LinkInlineTool implements InlineTool {
     /**
      * We need to add missed HTTP protocol to the link, but skip 2 cases:
      *     1) Internal links like "/general"
-     *     2) Anchors looks like "#results"
-     *     3) Protocol-relative URLs like "//google.com"
+     *     2) Internal root links like "/"
+     *     3) Anchors looks like "#results"
+     *     4) Protocol-relative URLs like "//google.com"
      */
     const isInternal = /^\/[^/\s]/.test(link),
+        isInternalRoot = link.length === 1 && link[0] === '/',
         isAnchor = link.substring(0, 1) === '#',
         isProtocolRelative = /^\/\/[^/\s]/.test(link);
 
-    if (!isInternal && !isAnchor && !isProtocolRelative) {
+    if (!isInternal && !isInternalRoot && !isAnchor && !isProtocolRelative) {
       link = 'http://' + link;
     }
 
