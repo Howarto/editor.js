@@ -21,6 +21,18 @@ import { BlockTuneData } from '../../../types/block-tunes/block-tune-data';
  */
 export default class BlockManager extends Module {
   /**
+   * Module Events
+   *
+   * @returns {{opened: string, closed: string}}
+   */
+  public get events(): { insert: string; remove: string } {
+    return {
+      insert: 'block-manager-insert',
+      remove: 'block-manager-remove',
+    };
+  }
+
+  /**
    * Returns current Block index
    *
    * @returns {number}
@@ -296,6 +308,9 @@ export default class BlockManager extends Module {
       this.currentBlockIndex++;
     }
 
+    /** Tell to subscribers that block was inserted. */
+    this.eventsDispatcher.emit(this.events.insert, block);
+
     return block;
   }
 
@@ -426,11 +441,16 @@ export default class BlockManager extends Module {
       throw new Error('Can\'t find a Block to remove');
     }
 
+    const block = this._blocks[index];
+
     this._blocks.remove(index);
 
     if (this.currentBlockIndex >= index) {
       this.currentBlockIndex--;
     }
+
+    /** Tell to subscribers that block was removed. */
+    this.eventsDispatcher.emit(this.events.remove, block);
 
     /**
      * If first Block was removed, insert new Initial Block and set focus on it`s first input
@@ -474,7 +494,11 @@ export default class BlockManager extends Module {
    */
   public removeAllBlocks(): void {
     for (let index = this.blocks.length - 1; index >= 0; index--) {
+      const block = this._blocks[index];
+
       this._blocks.remove(index);
+      /** Tell to subscribers that block was removed. */
+      this.eventsDispatcher.emit(this.events.remove, block);
     }
 
     this.currentBlockIndex = -1;

@@ -40,6 +40,17 @@ contextRequire.keys().forEach((filename) => {
  */
 export default class Core {
   /**
+   * Module Events
+   *
+   * @returns {{opened: string, closed: string}}
+   */
+  public get events(): { ready: string } {
+    return {
+      ready: 'core-ready',
+    };
+  }
+
+  /**
    * Editor configuration passed by user to the constructor
    */
   public config: EditorConfig;
@@ -103,6 +114,8 @@ export default class Core {
            * Resolve this.isReady promise
            */
           onReady();
+          /** Tell to subscribers that block was removed. */
+          this.eventsDispatcher.emit(this.events.ready);
         }, 500);
       })
       .catch((error) => {
