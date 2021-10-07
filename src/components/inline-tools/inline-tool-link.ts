@@ -404,13 +404,15 @@ export default class LinkInlineTool implements InlineTool {
      *     2) Internal root links like "/"
      *     3) Anchors looks like "#results"
      *     4) Protocol-relative URLs like "//google.com"
+     *     4) Escaped URLs like "[content]"
      */
     const isInternal = /^\/[^/\s]/.test(link),
         isInternalRoot = link.length === 1 && link[0] === '/',
         isAnchor = link.substring(0, 1) === '#',
-        isProtocolRelative = /^\/\/[^/\s]/.test(link);
+        isProtocolRelative = /^\/\/[^/\s]/.test(link),
+        isEscapedUrl = /^\[.+\]$/.test(link);
 
-    if (!isInternal && !isInternalRoot && !isAnchor && !isProtocolRelative) {
+    if (!isInternal && !isInternalRoot && !isAnchor && !isProtocolRelative && !isEscapedUrl) {
       link = 'http://' + link;
     }
 
