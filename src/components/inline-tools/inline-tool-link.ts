@@ -2,7 +2,7 @@ import SelectionUtils from '../selection';
 
 import $ from '../dom';
 import * as _ from '../utils';
-import { InlineTool, SanitizerConfig } from '../../../types';
+import { EditorConfig, InlineTool, SanitizerConfig } from '../../../types';
 import { Notifier, Toolbar, I18n } from '../../../types/api';
 
 /**
@@ -109,14 +109,22 @@ export default class LinkInlineTool implements InlineTool {
   private i18n: I18n;
 
   /**
+   * EditorJS configuration
+   */
+  private config: {
+    linkSuggestions?: string[];
+  };
+
+  /**
    * @param {API} api - Editor.js API
    */
-  constructor({ api }) {
+  constructor({ api, config }) {
     this.toolbar = api.toolbar;
     this.inlineToolbar = api.inlineToolbar;
     this.notifier = api.notifier;
     this.i18n = api.i18n;
     this.selection = new SelectionUtils();
+    this.config = config;
   }
 
   /**
@@ -145,6 +153,20 @@ export default class LinkInlineTool implements InlineTool {
         this.enterPressed(event);
       }
     });
+    link.setAttribute('list', 'linkSuggestions');
+
+    const datalist = document.createElement('datalist');
+
+    datalist.id = 'linkSuggestions';
+
+    if (this.config.linkSuggestions?.length > 0) {
+      this.config.linkSuggestions.forEach((suggestion) => {
+        const option = document.createElement('option');
+
+        option.textContent = suggestion;
+        datalist.appendChild(option);
+      });
+    }
 
     const title = document.createElement('input');
 
@@ -158,7 +180,7 @@ export default class LinkInlineTool implements InlineTool {
 
     const root = document.createElement('div');
 
-    root.append(link, title);
+    root.append(link, datalist, title);
 
     this.nodes.inputs = {
       root,
