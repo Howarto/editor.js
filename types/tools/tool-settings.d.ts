@@ -26,7 +26,7 @@ export interface ToolSettings <Config extends object = any> {
   /**
    * Tool's class
    */
-  class: ToolConstructable;
+  class?: ToolConstructable;
 
   /**
    * User configuration object that will be passed to the Tool's constructor
